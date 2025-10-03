@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template básico para criar Lambda + S3 para desafio DIO
+
+Resources:
+
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-dio-lambda-s3-bucket
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: lambda-execution-role-dio
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::my-dio-lambda-s3-bucket
+                  - !Sub arn:aws:s3:::my-dio-lambda-s3-bucket/*
+
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my-dio-lambda-function
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.9
+      Code:
+        ZipFile: |
+          import json
+
+          def lambda_handler(event, context):
+              print("Evento recebido:", json.dumps(event))
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Função Lambda executada com sucesso!')
+              }
+
+Outputs:
+  BucketName:
+    Description: "Nome do bucket S3 criado"
+    Value: !Ref MyBucket
+
+  LambdaName:
+    Description: "Nome da função Lambda criada"
+    Value: !Ref MyLambdaFunction
